@@ -1,0 +1,16 @@
+{
+  "name": "gulp-marker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha ./test"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "lodash": "^4.16.1",
+    "through2": "^2.0.1"
+  }
+}
