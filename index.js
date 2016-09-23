@@ -8,7 +8,7 @@ var PluginError = gutil.PluginError;
 var stream = require('stream');
 var _ = require('lodash');
 
-const PLUGIN_NAME = 'gulp-marker';
+const PLUGIN_NAME = 'gulp-mark';
 const REG = {
   dev: /\/\/\s*@dev\b/g,
   prod: /\/\/\s*@prod\b/g,

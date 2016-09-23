@@ -14,7 +14,7 @@ var marker = require(path.join(process.env.PWD, 'index.js'));
 describe('test gulp task', function () {
   it('compile a basic file', function () {
 
-    var fakeFile = new File({
+/*    var fakeFile = new File({
       contents: es.readArray(['stream', 'with', 'those', 'contents'])
     });
 
@@ -22,7 +22,7 @@ describe('test gulp task', function () {
 
     fakeFile.on('data', function (data) {
       console.log(data);
-    });
+    });*/
 
     // fakeFile.pipe(process.stdout)
 
