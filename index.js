@@ -8,70 +8,97 @@ var PluginError = gutil.PluginError;
 var stream = require('stream');
 var _ = require('lodash');
 
-// 常量
 const PLUGIN_NAME = 'gulp-marker';
+const REG = {
+  dev: /\/\/\s*@dev\b/g,
+  prod: /\/\/\s*@prod\b/g,
+  end: /\/\/\s*@end\b/g
+};
+
+/**
+ * pick the star mark reg
+ * @param env
+ * @returns {RegExp}
+ */
+function pickReg(env) {
+  return env === 'prod' ? REG.dev : REG.prod;
+}
+
+/**
+ * parser file string
+ * @param fileStr
+ * @param starMarkReg
+ * @returns {string[]|Array|LoDashImplicitArrayWrapper<string>|LoDashExplicitArrayWrapper<string>|*}
+ */
+function parser(fileStr, starMarkReg) {
+  let dataLines = fileStr.split(/\n/g);
+
+  let range = [];
+  let starts = [];
+
+  /**
+   * 逐行分析代码
+   * 最后得出一个数组，里面记录了从xx行-xx行为标记代码
+   */
+  _.each(dataLines, (lineCode, lineIndex)=> {
+    // find the start marker
+    if (starMarkReg.test(lineCode)) {
+      starts.push({
+        line: lineIndex + 1,
+        code: lineCode
+      });
+    }
+    // match the start marker with end
+    else if (REG.end.test(lineCode)) {
+      if (starts.length) {
+        let lastStart = starts.pop();
+        range.push({
+          start: lastStart.line,
+          end: lineIndex + 1
+        });
+      }
+    }
+
+  });
+
+  let result = _.cloneDeep(dataLines);
+
+  /**
+   * 标记要注释的代码
+   */
+  _.each(range, range=> {
+    _.each(dataLines, (lineCode, lineIndex)=> {
+      let line = lineIndex + 1;
+      if (line > range.start && line < range.end) {
+        result[lineIndex] = {origin: lineCode};
+      }
+    });
+  });
+
+  /**
+   * 注释已标记的代码
+   */
+  _.each(result, (lineCode, lineIndex)=> {
+    if (_.isPlainObject(lineCode)) {
+      result[lineIndex] = `// ${lineCode.origin}`;
+    }
+  });
+
+  // 最终结果
+  result = result.join('\n');
+
+  return result;
+}
 
 class markerTransform extends stream.Transform {
   constructor(env) {
     super();
-    this.devReg = /\/\/\s*@dev\b/g;
-    this.prodReg = /\/\/\s*@prod\b/g;
-    this.endReg = /\/\/\s*@end\b/g;
-    this.startReg = env === 'prod' ? this.devReg : this.prodReg;
+    this.env = env;
   }
 
   _transform(chunk, encoding, callback) {
     let data = chunk.toString();
-
-    let dataLines = data.split(/\n/g);
-
-    let range = [];
-    let starts = [];
-
-    /**
-     * 逐行分析代码
-     * 最后得出一个数组，里面记录了从xx行-xx行为标记代码
-     */
-    _.each(dataLines, (lineCode, lineIndex)=> {
-      // find the start marker
-      if (this.startReg.test(lineCode)) {
-        starts.push({
-          line: lineIndex + 1,
-          code: lineCode
-        });
-      }
-      // match the start marker with end
-      else if (this.endReg.test(lineCode)) {
-        if (starts.length) {
-          let lastStart = starts.pop();
-          range.push({
-            start: lastStart.line,
-            end: lineIndex + 1
-          });
-        }
-      }
-
-    });
-
-    let result = _.cloneDeep(dataLines);
-
-    _.each(range, range=> {
-      _.each(dataLines, (lineCode, lineIndex)=> {
-        let line = lineIndex + 1;
-        if (line > range.start && line < range.end) {
-          result[lineIndex] = {origin: lineCode};
-        }
-      });
-    });
-
-    _.each(result, (lineCode, lineIndex)=> {
-      if (_.isPlainObject(lineCode)) {
-        result[lineIndex] = `// ${lineCode.origin}`;
-      }
-    });
-
-    result = result.join('\n');
-
+    const result = parser.call(this, data, pickReg(this.env));
     this.push(new Buffer(result));
     callback(null);
   }
@@ -85,8 +112,9 @@ class markerTransform extends stream.Transform {
 function marker(env) {
   return through.obj(function (file, enc, cb) {
     if (file.isBuffer()) {
-      this.emit('error', new PluginError(PLUGIN_NAME, 'Buffers not supported!'));
-      return cb();
+      let fileStr = file.contents.toString();
+      fileStr = parser.call(this, fileStr, pickReg(env));
+      file.contents = new Buffer(fileStr);
     }
 
     if (file.isStream()) {
@@ -104,5 +132,7 @@ function marker(env) {
 }
 
 marker.transform = markerTransform;
+marker.parser = parser;
+marker.pickReg = pickReg;
 
 module.exports = marker;

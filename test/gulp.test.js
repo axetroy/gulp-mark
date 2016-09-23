@@ -5,18 +5,33 @@
 var path = require('path');
 var fs = require('fs');
 
+var es = require('event-stream');
+var File = require('vinyl');
 var expect = require('chai').expect;
 var gulp = require('gulp');
 var marker = require(path.join(process.env.PWD, 'index.js'));
-var markerTransform = marker.transform;
 
 describe('test gulp task', function () {
   it('compile a basic file', function () {
 
-    var rs = fs.createReadStream(path.join(process.env.PWD, '/demo', 'index.js'));
+    var fakeFile = new File({
+      contents: es.readArray(['stream', 'with', 'those', 'contents'])
+    });
 
-    rs.pipe(new markerTransform('prod')).pipe(process.stdout);
+    // process.stdout.pipe(fakeFile);
 
-    expect(1).to.be.equal(1);
+    fakeFile.on('data', function (data) {
+      console.log(data);
+    });
+
+    // fakeFile.pipe(process.stdout)
+
+
+    /*    fakeFile
+     .pipe(marker('dev'))
+     .on('data', function (file, content) {
+     console.log(222, file, content);
+     });*/
+
   });
 });
