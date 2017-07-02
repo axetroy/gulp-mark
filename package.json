@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "chai": "^3.5.0",
+    "chai": "^4.0.2",
     "event-stream": "^3.3.4",
     "gulp": "^3.9.1",
     "lodash": "^4.16.1",
